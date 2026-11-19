@@ -1,0 +1,11 @@
+# Dependency & build outputs
+node_modules/
+.vercel/
+*.log
+.DS_Store
+.env
+
+# Local unmigrated source folders (migrated into GlobalTv/)
+ftp-upload/
+cloudflare-worker/
+github-actions/
