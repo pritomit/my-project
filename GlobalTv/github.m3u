@@ -1,0 +1,7 @@
+#EXTM3U
+# PritomX Global TV HuB — Sky Pack Playlist
+#EXTINF:-1 tvg-logo="https://ui-avatars.com/api/?name=SP&background=1a73e8&color=fff&size=128" group-title="Sports",Sports Arena HD (Demo)
+https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8
+
+#EXTINF:-1 tvg-logo="https://ui-avatars.com/api/?name=MV&background=10b981&color=fff&size=128" group-title="Movies",Cinema Global HD (Demo)
+https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8

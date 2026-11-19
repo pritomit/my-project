@@ -1,0 +1,12 @@
+{
+  "name": "globaltv",
+  "version": "1.0.0",
+  "description": "PritomX Global TV HuB - Live IPTV Web Player",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-streams.mjs"
+  },
+  "keywords": ["iptv", "m3u8", "streaming", "player", "cloudflare-worker"],
+  "author": "Pritom Siddique (PritomX)",
+  "license": "MIT"
+}

@@ -1,0 +1,21 @@
+{
+  "sources": [
+    {
+      "id": "fixed-1",
+      "name": "NIS Free",
+      "sourceKey": "stream1",
+      "url": "./alltv.m3u8"
+    },
+    {
+      "id": "fixed-2",
+      "name": "Sky Pack",
+      "sourceKey": "stream2",
+      "url": "./github.m3u"
+    },
+    {
+      "id": "local-fallback",
+      "name": "PritomX Verified Backup",
+      "url": "./fallback.m3u"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/GlobalTv/index.html" },
+    { "source": "/GlobalTv", "destination": "/GlobalTv/index.html" },
+    { "source": "/GlobalTv/(.*)", "destination": "/GlobalTv/$1" },
+    { "source": "/(.*)", "destination": "/GlobalTv/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)\\.(m3u|m3u8|json)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
+}

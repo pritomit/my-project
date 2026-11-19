@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PritomX Global TV HuB — Sports & Live IPTV</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+:root {
+  --bg: #07080c;
+  --surface: #0e1017;
+  --card: #151924;
+  --card-hover: #1d2232;
+  --accent: #e50914;
+  --accent-dim: rgba(229,9,20,0.14);
+  --accent-glow: rgba(229,9,20,0.38);
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --text: #ffffff;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --border: rgba(255,255,255,0.08);
+  --border-bright: rgba(255,255,255,0.15);
+  --glass: rgba(10,12,18,0.92);
+  --input-bg: rgba(255,255,255,0.06);
+  --shadow-xl: 0 30px 60px rgba(0,0,0,0.85);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.55);
+  --topbar-h: 60px;
+  --foot-h: 36px;
+  --sidebar-w: 385px;
+  --r-xl: 18px;
+  --r-lg: 12px;
+  --r-md: 9px;
+  --r-sm: 6px;
+}
+[data-theme="light"] {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --card: #f4f6fa;
+  --card-hover: #e7ebf2;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  --border: rgba(15,23,42,0.08);
+  --border-bright: rgba(15,23,42,0.15);
+  --glass: rgba(255,255,255,0.94);
+  --input-bg: rgba(15,23,42,0.05);
+  --shadow-xl: 0 24px 48px rgba(15,23,42,0.12);
+  --shadow-md: 0 8px 24px rgba(15,23,42,0.08);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;transition:background .3s,color .3s;}
+
+.app{position:relative;display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{
+  height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);z-index:200;gap:10px;
+}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;user-select:none;min-width:0;}
+.brand-icon{
+  width:36px;height:36px;flex-shrink:0;background:var(--accent);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px var(--accent-glow);
+}
+.brand-text{display:flex;flex-direction:column;line-height:1.05;min-width:0;}
+.brand-name{
+  font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:2px;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.brand-tag{font-size:0.54rem;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--accent);}
+
+.topbar-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.tb-divider{width:1px;height:22px;background:var(--border-bright);margin:0 2px;}
+
+.icon-btn,.pill-btn{
+  height:36px;border-radius:var(--r-md);background:var(--input-bg);border:1px solid var(--border);
+  color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;position:relative;font-family:'Plus Jakarta Sans',sans-serif;
+}
+.icon-btn{width:36px;flex-shrink:0;}
+.pill-btn{padding:0 11px;gap:6px;font-size:0.74rem;font-weight:600;white-space:nowrap;}
+.icon-btn:hover,.pill-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.pill-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.icon-btn svg,.pill-btn svg{width:16px;height:16px;flex-shrink:0;}
+
+/* Color Palette */
+.cpw{position:relative;}
+.cp-dropdown{
+  position:absolute;top:calc(100% + 10px);right:0;background:var(--surface);border:1px solid var(--border-bright);
+  border-radius:var(--r-xl);padding:14px;display:none;flex-direction:column;gap:10px;
+  z-index:9999;box-shadow:var(--shadow-xl);min-width:205px;
+}
+.cp-dropdown.open{display:flex;}
+.cp-label{font-size:0.68rem;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted);}
+.cp-swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.swatch{width:36px;height:36px;border-radius:9px;cursor:pointer;border:2px solid transparent;transition:all .2s;}
+.swatch:hover,.swatch.active{transform:scale(1.1);border-color:#fff;}
+
+/* MAIN */
+.main-row{display:flex;flex:1;min-height:0;overflow:hidden;}
+
+/* PLAYER */
+.player-section{flex:1;min-width:0;display:flex;flex-direction:column;background:#000;overflow:hidden;}
+.video-wrap{flex:1;min-height:0;position:relative;background:radial-gradient(ellipse at center,#121520 0%,#000 100%);overflow:hidden;}
+#vp{width:100%;height:100%;object-fit:contain;display:block;background:#000;}
+
+.loader-ov{
+  position:absolute;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(8px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:30;
+}
+.ld-ring{width:44px;height:44px;border:3px solid rgba(255,255,255,0.1);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-txt{font-size:0.82rem;color:#cbd5e1;font-weight:500;}
+
+.pbar{
+  min-height:58px;flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:8px 16px;gap:12px;flex-wrap:wrap;
+}
+.now-playing{display:flex;align-items:center;gap:9px;flex:1;min-width:180px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 8px var(--accent);animation:livePulse 1.8s infinite;}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(.8);}}
+.live-badge{font-size:0.58rem;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 7px;border-radius:4px;flex-shrink:0;}
+.now-meta{display:flex;flex-direction:column;min-width:0;}
+.ch-now-title{font-size:0.92rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ch-now-sub{font-size:0.68rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.pbar-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.srv-wrap{display:flex;align-items:center;gap:4px;}
+.srv-btn{
+  height:30px;padding:0 9px;border-radius:var(--r-sm);background:var(--input-bg);border:1px solid var(--border);
+  color:var(--text-muted);font-size:0.7rem;font-weight:700;cursor:pointer;transition:all .18s;
+}
+.srv-btn:hover{border-color:var(--accent);color:var(--accent);}
+.srv-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+.qw{position:relative;}
+.q-btn{
+  display:flex;align-items:center;gap:5px;padding:0 10px;height:30px;border-radius:var(--r-sm);
+  background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-size:0.72rem;font-weight:600;cursor:pointer;
+}
+.q-btn:disabled{opacity:.45;cursor:not-allowed;}
+.q-dropdown{
+  position:absolute;bottom:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--border-bright);
+  border-radius:var(--r-lg);overflow:hidden;display:none;min-width:155px;box-shadow:var(--shadow-md);z-index:200;
+}
+.q-dropdown.open{display:block;}
+.q-opt{padding:8px 12px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);display:flex;justify-content:space-between;}
+.q-opt:hover{background:var(--accent-dim);color:var(--accent);}
+.q-opt.active{color:var(--accent);font-weight:700;}
+
+/* SIDEBAR */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-top{flex-shrink:0;padding:12px 12px 0;border-bottom:1px solid var(--border);}
+.search-row{display:flex;gap:6px;align-items:center;}
+.search-wrap{position:relative;flex:1;}
+.search-wrap .s-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text-muted);pointer-events:none;}
+#ch-search{
+  width:100%;height:36px;padding:0 12px 0 34px;border-radius:50px;border:1px solid var(--border);
+  background:var(--input-bg);color:var(--text);font-size:0.79rem;font-family:'Plus Jakarta Sans',sans-serif;outline:none;
+}
+#ch-search:focus{border-color:var(--accent);background:var(--accent-dim);}
+
+.quick-strip{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px;}
+.quick-pill{
+  height:32px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--input-bg);
+  color:var(--text);font-size:0.73rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;
+}
+.quick-pill:hover{border-color:var(--accent);color:var(--accent);}
+.quick-pill.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-glow);}
+
+.cat-tabs{display:flex;gap:5px;padding:9px 0 11px;overflow-x:auto;scrollbar-width:none;}
+.cat-tabs::-webkit-scrollbar{display:none;}
+.cat-tab{
+  display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:50px;
+  font-size:0.71rem;font-weight:600;background:var(--input-bg);border:1px solid var(--border);
+  color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;
+}
+.cat-tab:hover{border-color:var(--accent);color:var(--accent);}
+.cat-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.cat-count{font-size:0.6rem;background:rgba(255,255,255,0.16);padding:1px 6px;border-radius:99px;font-weight:700;}
+
+.ch-info-row{display:flex;align-items:center;justify-content:space-between;padding:7px 12px 5px;flex-shrink:0;}
+.ch-info-label{font-size:0.68rem;color:var(--text-muted);font-weight:600;}
+.ch-info-count{font-size:0.68rem;color:var(--accent);font-weight:700;}
+
+.ch-list-wrap{flex:1;overflow-y:auto;padding:4px 10px 14px;}
+.ch-list-wrap::-webkit-scrollbar{width:4px;}
+.ch-list-wrap::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px;}
+
+.group-block{margin-bottom:14px;}
+.group-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 4px 7px;position:sticky;top:0;background:var(--surface);z-index:5;
+}
+.group-title{font-size:0.73rem;font-weight:800;letter-spacing:.4px;color:var(--text);display:flex;align-items:center;gap:6px;}
+.group-badge{font-size:0.62rem;color:var(--text-muted);background:var(--input-bg);padding:2px 7px;border-radius:99px;}
+
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px;}
+.ch-card{
+  background:var(--card);border-radius:var(--r-lg);cursor:pointer;padding:10px 6px 8px;text-align:center;
+  border:2px solid transparent;transition:all .2s;position:relative;overflow:hidden;
+}
+.ch-card:hover{background:var(--card-hover);transform:translateY(-2px);}
+.ch-card.active{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 4px 16px var(--accent-glow);}
+.srv-pill{
+  position:absolute;top:5px;left:5px;font-size:0.52rem;font-weight:800;
+  background:rgba(0,0,0,0.65);color:#e2e8f0;padding:1px 5px;border-radius:4px;border:1px solid var(--border);
+}
+.live-pip{display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);animation:livePulse 1.8s infinite;}
+.ch-card.active .live-pip{display:block;}
+.ch-logo-wrap{
+  width:50px;height:50px;border-radius:11px;background:rgba(0,0,0,0.35);margin:0 auto 7px;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);
+}
+.ch-card.active .ch-logo-wrap{border-color:var(--accent);}
+.ch-logo{width:100%;height:100%;object-fit:contain;padding:5px;}
+.ch-name{
+  font-size:0.62rem;font-weight:600;color:var(--text-muted);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;
+}
+.ch-card.active .ch-name{color:var(--accent);}
+
+.empty-state{padding:44px 16px;text-align:center;color:var(--text-muted);font-size:0.82rem;}
+
+/* FOOTER */
+.footer{
+  height:var(--foot-h);flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;padding:0 14px;
+}
+.footer-credit{font-size:0.64rem;color:var(--text-dim);white-space:nowrap;}
+.footer-credit b{color:var(--accent);}
+
+/* LOADER & TOAST */
+#global-loader{
+  position:fixed;inset:0;background:#05060a;z-index:9999;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;transition:opacity .4s;
+}
+.gl-icon{width:64px;height:64px;background:var(--accent);border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px var(--accent-glow);}
+.gl-name{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:3px;color:#fff;text-align:center;padding:0 12px;}
+.gl-sub{font-size:0.74rem;color:#94a3b8;letter-spacing:1.4px;text-transform:uppercase;}
+
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:7px;z-index:10000;}
+.toast{
+  padding:10px 14px;border-radius:var(--r-lg);background:var(--card);border:1px solid var(--border-bright);
+  border-left:3px solid var(--accent);color:var(--text);font-size:0.78rem;box-shadow:var(--shadow-md);max-width:320px;
+}
+.toast.ok{border-left-color:var(--ok);}
+.toast.err{border-left-color:#ef4444;}
+
+/* MODAL FOR M3U URL */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;z-index:10001;padding:16px;
+}
+.modal-bg.open{display:flex;}
+.modal-box{
+  width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border-bright);
+  border-radius:var(--r-xl);padding:18px;box-shadow:var(--shadow-xl);display:flex;flex-direction:column;gap:12px;
+}
+.modal-box h3{font-size:0.95rem;}
+.modal-box input{
+  width:100%;height:38px;border-radius:var(--r-md);border:1px solid var(--border-bright);
+  background:var(--input-bg);color:var(--text);padding:0 12px;font-size:0.82rem;outline:none;
+}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;}
+
+@media(max-width:1024px){:root{--sidebar-w:330px;}}
+@media(max-width:920px){
+  html,body{overflow:auto;height:auto;}
+  .app{height:auto;min-height:100vh;overflow:visible;}
+  .main-row{flex-direction:column;height:auto;overflow:visible;}
+  .video-wrap{height:46vw;min-height:230px;flex:none;}
+  .sidebar{width:100%;flex:none;border-left:none;border-top:1px solid var(--border);max-height:none;}
+}
+@media(max-width:640px){
+  .topbar{padding:0 10px;}
+  .brand-name{font-size:1.15rem;letter-spacing:1.2px;}
+  .pill-btn span{display:none;}
+  .ch-grid{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;}
+}
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="global-loader">
+  <div class="gl-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
+      <rect x="2" y="3" width="20" height="14" rx="2.5"/><path d="M8 21h8"/><path d="M12 17v4"/>
+    </svg>
+  </div>
+  <div class="gl-name">PritomX Global TV HuB</div>
+  <div class="gl-sub">Sports & Live Streaming Engine</div>
+</div>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3">
+          <rect x="2" y="3" width="20" height="14" rx="2.5"/><path d="M8 21h8"/><path d="M12 17v4"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">PritomX Global TV HuB</span>
+        <span class="brand-tag">SPORTS • LIVE • GLOBAL</span>
+      </div>
+    </a>
+
+    <div class="topbar-right">
+      <button class="pill-btn active" id="proxyModeBtn" type="button" title="CORS/HTTP স্ট্রিম অটো-প্রক্সি মোড">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span id="proxyModeTxt">Proxy: Auto</span>
+      </button>
+
+      <button class="pill-btn" id="openUrlModalBtn" type="button" title="যেকোনো M3U URL যুক্ত করুন">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span>M3U URL</span>
+      </button>
+
+      <input type="file" id="m3uFileInput" accept=".m3u,.m3u8,.txt" style="display:none">
+      <button class="pill-btn" id="importM3uBtn" type="button" title="লোকাল M3U/M3U8 ফাইল লোড করুন">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span>ফাইল লোড</span>
+      </button>
+
+      <div class="cpw" id="cpw">
+        <button class="icon-btn" id="cpBtn" type="button" title="থিম কালার">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <div class="cp-dropdown" id="cpDrop">
+          <div class="cp-label">থিম কালার</div>
+          <div class="cp-swatches" id="cpSwatches"></div>
+        </div>
+      </div>
+
+      <button class="icon-btn" id="ssBtn" type="button" title="স্ক্রিনশট">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+        </svg>
+      </button>
+
+      <button class="icon-btn" id="fsBtn" type="button" title="ফুলস্ক্রিন">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
+        </svg>
+      </button>
+
+      <div class="tb-divider"></div>
+
+      <button class="pill-btn" id="themeBtn" type="button">
+        <span id="themeTxt">ডার্ক</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="main-row">
+    <section class="player-section">
+      <div class="video-wrap">
+        <video id="vp" controls playsinline preload="auto"></video>
+        <div class="loader-ov" id="ldOv" style="display:none">
+          <div class="ld-ring"></div>
+          <div class="ld-txt" id="ldTxt">স্ট্রিম লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <div class="pbar">
+        <div class="now-playing">
+          <div class="live-dot"></div>
+          <span class="live-badge">LIVE</span>
+          <div class="now-meta">
+            <span class="ch-now-title" id="nowTitle">PritomX Global TV HuB</span>
+            <span class="ch-now-sub" id="nowSub">চ্যানেল নির্বাচন করুন</span>
+          </div>
+        </div>
+
+        <div class="pbar-right">
+          <div class="srv-wrap" id="srvWrap"></div>
+          <button class="srv-btn" id="copyUrlBtn" type="button" title="VLC / MX Player-এ চালানোর জন্য লিংক কপি করুন">
+            VLC লিংক কপি
+          </button>
+          <div class="qw">
+            <button class="q-btn" id="qBtn" type="button" disabled>
+              <span id="qLabel">Auto</span> ▾
+            </button>
+            <div class="q-dropdown" id="qDrop"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="search-row">
+          <div class="search-wrap">
+            <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="ch-search" placeholder="চ্যানেল বা স্পোর্টস খুঁজুন..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="quick-strip">
+          <button class="quick-pill" id="quickLiveBtn" type="button">🔴 Live Events</button>
+          <button class="quick-pill" id="quickSportsBtn" type="button">⚽ Sports Hub</button>
+        </div>
+
+        <div class="cat-tabs" id="cat-tabs"></div>
+      </div>
+
+      <div class="ch-info-row">
+        <span class="ch-info-label" id="infoLabel">প্লেলিস্ট লোড হচ্ছে...</span>
+        <span class="ch-info-count" id="infoCount"></span>
+      </div>
+
+      <div class="ch-list-wrap" id="ch-list-wrap"></div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <span class="footer-credit">© <b>PritomX</b> — <b>PritomX Global TV HuB</b> • Powered by PritomX Worker</span>
+  </footer>
+</div>
+
+<!-- M3U URL Modal -->
+<div class="modal-bg" id="urlModal">
+  <div class="modal-box">
+    <h3>এক্সটার্নাল M3U / M3U8 প্লেলিস্ট লিংক যোগ করুন</h3>
+    <input type="url" id="extM3uUrl" placeholder="https://example.com/playlist.m3u">
+    <div class="modal-actions">
+      <button class="pill-btn" id="closeUrlModalBtn" type="button">বাতিল</button>
+      <button class="pill-btn active" id="loadExtUrlBtn" type="button">লোড করুন</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ===== CONFIG (PRE-CONFIGURED FOR PRITOMX WORKER + FTP) =====
+const PROXY_URL = "https://tv-proxy.shahinrhss99.workers.dev";
+const STREAM_PROXY_BASE = "https://pritom-worker-tv.pritomsiddique226.workers.dev/?url=";
+const LOCAL_PLAYLISTS_JSON = "./playlists.json";
+const LOCAL_FALLBACK_M3U = "./fallback.m3u";
+
+const DEMO_CHANNELS = [
+  { name: "Live Match Demo HD", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", category: "Live Events", subGroup: "Live Match", logo: "" },
+  { name: "Sports Arena Demo", url: "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8", category: "Sports", subGroup: "International Sports", logo: "" }
+];
+
+const CATEGORY_META = [
+  { key: "all",           label: "সবগুলো",        icon: "📺" },
+  { key: "Live Events",   label: "Live Events",  icon: "🔴" },
+  { key: "Sports",        label: "Sports",       icon: "⚽" },
+  { key: "Bangla",        label: "Bangla",       icon: "🇧🇩" },
+  { key: "News",          label: "News",         icon: "📰" },
+  { key: "Movies",        label: "Movies",       icon: "🎬" },
+  { key: "Entertainment", label: "Entertainment",icon: "🎭" },
+  { key: "Kids",          label: "Kids",         icon: "👶" },
+  { key: "Islamic",       label: "Islamic",      icon: "🕌" },
+  { key: "Music",         label: "Music",        icon: "🎵" },
+  { key: "Global",        label: "Global & More",icon: "🌍" }
+];
+
+function classifyChannel(rawGroup, rawName) {
+  const g = String(rawGroup || "").toLowerCase();
+  const n = String(rawName || "").toLowerCase();
+  const combined = `${g} ${n}`;
+
+  if (/(live event|live match|ppv|match day|tournament|icc|ipl|bpl|ucl|fifa|world cup|event\s*\d)/i.test(combined)) {
+    return { category: "Live Events", subGroup: rawGroup || "Live Match" };
+  }
+  if (/(sport|cricket|football|soccer|willow|t[\s-]?sport|star sport|sony ten|sony six|ten cricket|ptv sport|a sport|gazi tv|gtv|bein|espn|fox sport|sky sport|tnt sport|eurosport|dazn|fancode|astro cricket)/i.test(combined)) {
+    let sub = "International Sports";
+    if (/(cricket|willow|t[\s-]?sport|star sport|ten|ptv|a sport|gtv|gazi|sony)/i.test(combined)) sub = "Cricket & South Asia Sports";
+    else if (/(football|bein|sky sport|tnt|espn|dazn|eurosport|premier|laliga)/i.test(combined)) sub = "Football & Global Sports";
+    return { category: "Sports", subGroup: sub };
+  }
+  if (/(news|somoy|jamuna|ekattor|independent|dbc|channel 24|ekhon|news24|bbc|cnn|al jazeera|rt|dw|wion|aaj tak|abp)/i.test(combined)) {
+    return { category: "News", subGroup: /(somoy|jamuna|ekattor|independent|dbc|channel 24|ekhon|news24|bangla|bd)/i.test(combined) ? "Bangla News" : "World News" };
+  }
+  if (/(movie|cinema|hbo|star gold|zee cinema|sony max|jalsha movies|zee bangla cinema|colors cineplex|action|bollywood|hollywood)/i.test(combined)) {
+    return { category: "Movies", subGroup: "Movies & Cinema" };
+  }
+  if (/(kid|cartoon|nick|disney|pogo|hungama|duronto|sony yay|cn|baby)/i.test(combined)) {
+    return { category: "Kids", subGroup: "Kids & Cartoons" };
+  }
+  if (/(islam|quran|makkah|madinah|peace tv|madani|iqra)/i.test(combined)) {
+    return { category: "Islamic", subGroup: "Islamic TV" };
+  }
+  if (/(music|mtv|9xm|gaan|sangeet|b4u music|mastiii|zing)/i.test(combined)) {
+    return { category: "Music", subGroup: "Music" };
+  }
+  if (/(bangla|bd|bangladesh|btv|atn|ntv|rtv|channel i|maasranga|deepto|boishakhi|ekushey|desh|nagorik|star jalsha|zee bangla|colors bangla|sony aath|kolkata)/i.test(combined)) {
+    return { category: "Bangla", subGroup: /(jalsha|zee bangla|colors bangla|aath|kolkata)/i.test(combined) ? "Kolkata Bangla" : "Bangladesh TV" };
+  }
+  if (/(entertain|drama|star plus|zee tv|sony tv|colors|sab tv|and tv|general)/i.test(combined)) {
+    return { category: "Entertainment", subGroup: "Entertainment" };
+  }
+  return { category: "Global", subGroup: rawGroup || "General" };
+}
+
+let groupedChannels = [];
+let activeCategory = "all";
+let searchQuery = "";
+let currentChannel = null;
+let currentServerIdx = 0;
+let proxyMode = "auto";
+let hls = null;
+let loadToken = 0;
+
+const $ = id => document.getElementById(id);
+const vp = $('vp'), nowTitle = $('nowTitle'), nowSub = $('nowSub');
+const chListWrap = $('ch-list-wrap'), catTabs = $('cat-tabs'), chSearch = $('ch-search');
+const globalLoader = $('global-loader'), ldOv = $('ldOv'), ldTxt = $('ldTxt');
+const qBtn = $('qBtn'), qLabel = $('qLabel'), qDrop = $('qDrop'), srvWrap = $('srvWrap');
+const infoLabel = $('infoLabel'), infoCount = $('infoCount');
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function safeHttpUrl(u){
+  try {
+    const p = new URL(String(u || '').trim());
+    if (p.protocol === 'https:' || p.protocol === 'http:') return p.href;
+  } catch (_) {}
+  return '';
+}
+function normalizeNameKey(name){
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\b(hd|fhd|sd|uhd|4k|1080p|720p|480p|server\s*\d+|backup|link\s*\d+|live)\b/gi, '')
+    .replace(/[^a-z0-9\u0980-\u09ff]+/g, '')
+    .trim() || String(name || '').toLowerCase();
+}
+function avatar(name, bg='e50914', size=64){
+  const t = encodeURIComponent(String(name || 'PX').trim().slice(0,2) || 'PX');
+  return `https://ui-avatars.com/api/?background=${bg}&color=fff&rounded=true&size=${size}&bold=true&name=${t}`;
+}
+function toast(msg, cls=''){
+  const el = document.createElement('div');
+  el.className = `toast ${cls}`;
+  el.textContent = msg;
+  $('toastWrap').appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+function getProxiedUrl(rawUrl){
+  return `${STREAM_PROXY_BASE}${encodeURIComponent(rawUrl)}`;
+}
+
+// THEME & PALETTE
+const COLORS = [
+  {val:'#e50914',glow:.38},{val:'#1a73e8',glow:.38},{val:'#10b981',glow:.38},{val:'#8b5cf6',glow:.38},
+  {val:'#f59e0b',glow:.38},{val:'#f43f5e',glow:.38},{val:'#06b6d4',glow:.38},{val:'#f97316',glow:.38}
+];
+function applyAccent(c){
+  const r=parseInt(c.val.slice(1,3),16), g=parseInt(c.val.slice(3,5),16), b=parseInt(c.val.slice(5,7),16);
+  document.documentElement.style.setProperty('--accent', c.val);
+  document.documentElement.style.setProperty('--accent-dim', `rgba(${r},${g},${b},0.14)`);
+  document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},${c.glow})`);
+  try{ localStorage.setItem('pritomx_accent', c.val); }catch(_){}
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color === c.val));
+}
+function initPalette(){
+  let saved = '#e50914';
+  try{ saved = localStorage.getItem('pritomx_accent') || '#e50914'; }catch(_){}
+  COLORS.forEach(c=>{
+    const d = document.createElement('div');
+    d.className = 'swatch'; d.dataset.color = c.val; d.style.background = c.val;
+    d.onclick = ()=>{ applyAccent(c); $('cpDrop').classList.remove('open'); toast('থিম কালার আপডেট হয়েছে','ok'); };
+    $('cpSwatches').appendChild(d);
+  });
+  applyAccent(COLORS.find(c=>c.val===saved) || COLORS[0]);
+}
+$('cpBtn').onclick = e=>{ e.stopPropagation(); $('cpDrop').classList.toggle('open'); };
+document.addEventListener('click', e=>{
+  if(!$('cpw').contains(e.target)) $('cpDrop').classList.remove('open');
+  if(!$('qBtn').contains(e.target) && !$('qDrop').contains(e.target)) $('qDrop').classList.remove('open');
+});
+
+function initTheme(){
+  let t = 'dark';
+  try{ t = localStorage.getItem('pritomx_theme') || 'dark'; }catch(_){}
+  document.body.setAttribute('data-theme', t);
+  $('themeTxt').textContent = t === 'dark' ? 'ডার্ক' : 'লাইট';
+}
+$('themeBtn').onclick = ()=>{
+  const nxt = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', nxt);
+  try{ localStorage.setItem('pritomx_theme', nxt); }catch(_){}
+  $('themeTxt').textContent = nxt === 'dark' ? 'ডার্ক' : 'লাইট';
+};
+
+// PROXY MODE
+$('proxyModeBtn').onclick = ()=>{
+  const order = ['auto', 'proxy', 'direct'];
+  proxyMode = order[(order.indexOf(proxyMode) + 1) % order.length];
+  const labels = { auto: 'Proxy: Auto', proxy: 'Proxy: Always', direct: 'Proxy: Off' };
+  $('proxyModeTxt').textContent = labels[proxyMode];
+  $('proxyModeBtn').classList.toggle('active', proxyMode !== 'direct');
+  toast(`স্ট্রিমিং মোড: ${labels[proxyMode]}`, 'ok');
+  if(currentChannel) playChannelServer(currentChannel, currentServerIdx);
+};
+
+// M3U FILE & URL IMPORT
+function appendParsedChannels(parsed, sourceLabel){
+  if(!parsed.length){ toast('কোনো বৈধ স্ট্রিম পাওয়া যায়নি','err'); return; }
+  groupedChannels = mergeIntoGroupedChannels([
+    ...parsed,
+    ...groupedChannels.flatMap(ch => ch.urls.map(u => ({ name: ch.name, url: u, category: ch.category, subGroup: ch.subGroup, logo: ch.logo })))
+  ]);
+  activeCategory = 'all';
+  buildTabs(); renderGroupedList();
+  toast(`${parsed.length}টি চ্যানেল যুক্ত হয়েছে (${sourceLabel})`, 'ok');
+}
+
+$('importM3uBtn').onclick = ()=> $('m3uFileInput').click();
+$('m3uFileInput').onchange = async e => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+  appendParsedChannels(parseM3u(await file.text()), file.name);
+  e.target.value = '';
+};
+
+$('openUrlModalBtn').onclick = ()=>{ $('urlModal').classList.add('open'); $('extM3uUrl').focus(); };
+$('closeUrlModalBtn').onclick = ()=> $('urlModal').classList.remove('open');
+$('urlModal').onclick = e => { if(e.target === $('urlModal')) $('urlModal').classList.remove('open'); };
+$('loadExtUrlBtn').onclick = async ()=>{
+  const raw = safeHttpUrl($('extM3uUrl').value);
+  if(!raw){ toast('সঠিক http/https লিংক দিন','err'); return; }
+  $('urlModal').classList.remove('open');
+  toast('প্লেলিস্ট ডাউনলোড হচ্ছে...');
+  let txt = await fetchTextSafe(raw);
+  if(!txt) txt = await fetchTextSafe(getProxiedUrl(raw));
+  appendParsedChannels(parseM3u(txt), 'External URL');
+  $('extM3uUrl').value = '';
+};
+
+// PLAYER CONTROLS
+$('fsBtn').onclick = ()=>{
+  if(!document.fullscreenElement) $('app').requestFullscreen?.().catch(()=>vp.requestFullscreen?.().catch(()=>{}));
+  else document.exitFullscreen?.().catch(()=>{});
+};
+$('ssBtn').onclick = ()=>{
+  if(!currentChannel || vp.readyState < 2){ toast('ভিডিও চালু হলে স্ক্রিনশট নিন','err'); return; }
+  try{
+    const c = document.createElement('canvas');
+    c.width = vp.videoWidth || 1280; c.height = vp.videoHeight || 720;
+    c.getContext('2d').drawImage(vp, 0, 0, c.width, c.height);
+    const a = document.createElement('a');
+    a.download = `PritomX_TV_${Date.now()}.png`;
+    a.href = c.toDataURL('image/png');
+    a.click();
+    toast('স্ক্রিনশট সেভ হয়েছে','ok');
+  }catch(_){ toast('CORS সীমাবদ্ধতার কারণে স্ক্রিনশট ব্যর্থ','err'); }
+};
+$('copyUrlBtn').onclick = ()=>{
+  const u = currentChannel?.urls?.[currentServerIdx];
+  if(!u){ toast('কোনো চ্যানেল চালু নেই','err'); return; }
+  navigator.clipboard?.writeText(u)
+    .then(()=>toast('স্ট্রিম লিংক কপি হয়েছে — VLC/MX-এ পেস্ট করুন','ok'))
+    .catch(()=>toast('কপি ব্যর্থ হয়েছে','err'));
+};
+
+// STREAM ENGINE
+function destroyHls(){
+  if(hls){ try{ hls.destroy(); }catch(_){} hls = null; }
+}
+function showLoader(txt){ ldTxt.textContent = txt; ldOv.style.display = 'flex'; }
+function hideLoader(){ ldOv.style.display = 'none'; }
+
+function buildQuality(levels){
+  qDrop.innerHTML = '';
+  const auto = document.createElement('div');
+  auto.className = 'q-opt active'; auto.textContent = 'Auto (স্বয়ংক্রিয়)';
+  auto.onclick = ()=>{ if(hls) hls.currentLevel = -1; qLabel.textContent = 'Auto'; qDrop.classList.remove('open'); };
+  qDrop.appendChild(auto);
+  if(!levels || !levels.length){ qBtn.disabled = true; qLabel.textContent = 'Auto'; return; }
+  qBtn.disabled = false;
+  levels.forEach((lvl, idx)=>{
+    const lbl = lvl.height ? `${lvl.height}p` : `Stream ${idx+1}`;
+    const o = document.createElement('div');
+    o.className = 'q-opt'; o.textContent = lbl;
+    o.onclick = ()=>{ if(hls) hls.currentLevel = idx; qLabel.textContent = lbl; qDrop.classList.remove('open'); };
+    qDrop.appendChild(o);
+  });
+}
+$('qBtn').onclick = e=>{ if(qBtn.disabled) return; e.stopPropagation(); qDrop.classList.toggle('open'); };
+
+function buildServerButtons(ch, activeIdx){
+  srvWrap.innerHTML = '';
+  if(!ch || !ch.urls.length) return;
+  ch.urls.forEach((_, idx)=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'srv-btn' + (idx === activeIdx ? ' active' : '');
+    b.textContent = `S${idx + 1}`;
+    b.onclick = ()=> playChannelServer(ch, idx);
+    srvWrap.appendChild(b);
+  });
+}
+
+function buildAttemptQueue(rawUrl){
+  const isMixedHttp = location.protocol === 'https:' && rawUrl.startsWith('http://');
+  if(proxyMode === 'direct') return [{ url: rawUrl, via: 'Direct' }];
+  if(proxyMode === 'proxy' || isMixedHttp) {
+    return [
+      { url: getProxiedUrl(rawUrl), via: 'PritomX Proxy' },
+      { url: rawUrl, via: 'Direct' }
+    ];
+  }
+  return [
+    { url: rawUrl, via: 'Direct' },
+    { url: getProxiedUrl(rawUrl), via: 'PritomX Proxy' }
+  ];
+}
+
+function playChannelServer(ch, srvIdx = 0){
+  loadToken += 1;
+  const token = loadToken;
+  currentChannel = ch;
+  currentServerIdx = srvIdx;
+  nowTitle.textContent = ch.name;
+  nowSub.textContent = `${ch.category} • ${ch.subGroup} • Server ${srvIdx + 1}/${ch.urls.length}`;
+  buildServerButtons(ch, srvIdx);
+  buildQuality([]);
+  tryQueueAttempt(ch, srvIdx, buildAttemptQueue(ch.urls[srvIdx]), 0, token);
+}
+
+function tryQueueAttempt(ch, srvIdx, queue, qIdx, token){
+  if(token !== loadToken) return;
+  if(qIdx >= queue.length){
+    if(srvIdx + 1 < ch.urls.length){
+      toast(`Server ${srvIdx + 1} ব্যর্থ — Server ${srvIdx + 2} চেষ্টা হচ্ছে...`);
+      playChannelServer(ch, srvIdx + 1);
+      return;
+    }
+    hideLoader();
+    toast('সব সার্ভার ব্যর্থ — VLC লিংক কপি করে দেখতে পারেন', 'err');
+    return;
+  }
+
+  const attempt = queue[qIdx];
+  vp.pause(); destroyHls();
+  showLoader(`Server ${srvIdx + 1} (${attempt.via}) লোড হচ্ছে...`);
+
+  if(Hls.isSupported()){
+    const inst = new Hls({
+      enableWorker: true,
+      lowLatencyMode: true,
+      manifestLoadingTimeOut: 9000,
+      levelLoadingTimeOut: 9000,
+      fragLoadingTimeOut: 12000
+    });
+    hls = inst;
+    inst.loadSource(attempt.url);
+    inst.attachMedia(vp);
+
+    let failed = false;
+    const failOnce = ()=>{
+      if(failed || token !== loadToken || hls !== inst) return;
+      failed = true;
+      destroyHls();
+      tryQueueAttempt(ch, srvIdx, queue, qIdx + 1, token);
+    };
+
+    inst.on(Hls.Events.MANIFEST_PARSED, ()=>{
+      if(token !== loadToken || hls !== inst) return;
+      hideLoader();
+      nowSub.textContent = `${ch.category} • ${ch.subGroup} • Server ${srvIdx + 1} (${attempt.via})`;
+      buildQuality(inst.levels);
+      vp.play().catch(()=>{});
+    });
+
+    inst.on(Hls.Events.ERROR, (_e, d)=>{
+      if(token !== loadToken || hls !== inst) return;
+      if(d.fatal){
+        if(d.type === Hls.ErrorTypes.MEDIA_ERROR){
+          try{ inst.recoverMediaError(); return; }catch(_){}
+        }
+        failOnce();
+      }
+    });
+  } else if(vp.canPlayType('application/vnd.apple.mpegurl')){
+    vp.src = attempt.url;
+    vp.onloadedmetadata = ()=>{ if(token === loadToken){ hideLoader(); vp.play().catch(()=>{}); } };
+    vp.onerror = ()=>{ if(token === loadToken) tryQueueAttempt(ch, srvIdx, queue, qIdx + 1, token); };
+  } else {
+    hideLoader();
+    toast('ব্রাউজার HLS সাপোর্ট করে না', 'err');
+  }
+}
+
+function parseM3u(text){
+  const lines = String(text || '').split(/\r?\n/), list = [];
+  let cur = null;
+  for(const raw of lines){
+    const line = raw.trim();
+    if(!line) continue;
+    if(line.startsWith('#EXTINF')){
+      const name = (line.match(/#EXTINF:[^,]*,?(.*)$/)?.[1] || 'Channel').trim();
+      const logo = (line.match(/tvg-logo="([^"]*)"/i)?.[1] || '').trim();
+      const rawGroup = (line.match(/group-title="([^"]*)"/i)?.[1] || '').trim();
+      cur = { name, logo, rawGroup };
+    } else if(!line.startsWith('#')){
+      const valid = safeHttpUrl(line);
+      if(valid){
+        const nm = (cur?.name || `Channel ${list.length + 1}`).slice(0, 50);
+        const cls = classifyChannel(cur?.rawGroup, nm);
+        list.push({
+          name: nm,
+          url: valid,
+          category: cls.category,
+          subGroup: cls.subGroup,
+          logo: safeHttpUrl(cur?.logo) || ''
+        });
+      }
+      cur = null;
+    }
+  }
+  return list;
+}
+
+function mergeIntoGroupedChannels(rawItems){
+  const map = new Map();
+  for(const item of rawItems){
+    const cleanUrl = safeHttpUrl(item.url);
+    if(!cleanUrl) continue;
+    const key = `${item.category}::${normalizeNameKey(item.name)}`;
+    if(!map.has(key)){
+      map.set(key, {
+        id: key,
+        name: item.name,
+        category: item.category || 'Global',
+        subGroup: item.subGroup || 'General',
+        logo: safeHttpUrl(item.logo) || avatar(item.name),
+        urls: [cleanUrl]
+      });
+    } else {
+      const existing = map.get(key);
+      if(!existing.urls.includes(cleanUrl)) existing.urls.push(cleanUrl);
+      if(existing.logo.includes('ui-avatars.com') && safeHttpUrl(item.logo)) existing.logo = item.logo;
+    }
+  }
+  for(const ch of map.values()){
+    ch.urls.sort((a,b) => (b.startsWith('https://') ? 1 : 0) - (a.startsWith('https://') ? 1 : 0));
+  }
+  return Array.from(map.values());
+}
+
+async function fetchJsonSafe(url){
+  try{ const r = await fetch(url); if(!r.ok) return null; return await r.json(); }catch(_){ return null; }
+}
+async function fetchTextSafe(url){
+  try{ const r = await fetch(url); if(!r.ok) return ''; return await r.text(); }catch(_){ return ''; }
+}
+
+async function loadAllSources(){
+  const rawList = [];
+
+  if(PROXY_URL){
+    const remoteCfg = await fetchJsonSafe(`${PROXY_URL}?source=playlist&t=${Date.now()}`);
+    if(Array.isArray(remoteCfg?.sources)){
+      const results = await Promise.allSettled(
+        remoteCfg.sources.map(s => s?.sourceKey ? fetchTextSafe(`${PROXY_URL}?source=${encodeURIComponent(s.sourceKey)}`) : '')
+      );
+      results.forEach(r => { if(r.status === 'fulfilled' && r.value) rawList.push(...parseM3u(r.value)); });
+    }
+  }
+
+  const localCfg = await fetchJsonSafe(`${LOCAL_PLAYLISTS_JSON}?t=${Date.now()}`);
+  if(Array.isArray(localCfg?.sources)){
+    for(const s of localCfg.sources){
+      if(s?.url){
+        const txt = await fetchTextSafe(s.url);
+        if(txt) rawList.push(...parseM3u(txt));
+      }
+    }
+  }
+
+  const fbTxt = await fetchTextSafe(`${LOCAL_FALLBACK_M3U}?t=${Date.now()}`);
+  if(fbTxt) rawList.push(...parseM3u(fbTxt));
+
+  if(!rawList.length) rawList.push(...DEMO_CHANNELS);
+  return mergeIntoGroupedChannels(rawList);
+}
+
+function buildTabs(){
+  const counts = {};
+  groupedChannels.forEach(ch => { counts[ch.category] = (counts[ch.category] || 0) + 1; });
+
+  $('quickLiveBtn').classList.toggle('active', activeCategory === 'Live Events');
+  $('quickSportsBtn').classList.toggle('active', activeCategory === 'Sports');
+
+  catTabs.innerHTML = '';
+  CATEGORY_META.forEach(meta => {
+    const cnt = meta.key === 'all' ? groupedChannels.length : (counts[meta.key] || 0);
+    if(meta.key !== 'all' && meta.key !== 'Live Events' && meta.key !== 'Sports' && cnt === 0) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cat-tab' + (activeCategory === meta.key ? ' active' : '');
+    b.innerHTML = `${meta.icon} ${esc(meta.label)} <span class="cat-count">${cnt}</span>`;
+    b.onclick = ()=>{ activeCategory = meta.key; buildTabs(); renderGroupedList(); };
+    catTabs.appendChild(b);
+  });
+}
+
+$('quickLiveBtn').onclick = ()=>{ activeCategory = 'Live Events'; buildTabs(); renderGroupedList(); };
+$('quickSportsBtn').onclick = ()=>{ activeCategory = 'Sports'; buildTabs(); renderGroupedList(); };
+
+function renderGroupedList(){
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = groupedChannels.filter(ch => {
+    const mc = activeCategory === 'all' || ch.category === activeCategory;
+    const ms = !q || ch.name.toLowerCase().includes(q) || ch.subGroup.toLowerCase().includes(q) || ch.category.toLowerCase().includes(q);
+    return mc && ms;
+  });
+
+  const totalServers = filtered.reduce((s, c) => s + c.urls.length, 0);
+  infoCount.textContent = `${filtered.length} চ্যানেল • ${totalServers} সার্ভার`;
+  chListWrap.innerHTML = '';
+
+  if(!filtered.length){
+    chListWrap.innerHTML = `<div class="empty-state">কোনো চ্যানেল পাওয়া যায়নি। উপরে "ফাইল লোড" বা "M3U URL" দিয়ে প্লেলিস্ট যুক্ত করুন।</div>`;
+    return;
+  }
+
+  const buckets = new Map();
+  if(activeCategory === 'all'){
+    CATEGORY_META.forEach(m => { if(m.key !== 'all') buckets.set(m.key, { title: `${m.icon} ${m.label}`, items: [] }); });
+    filtered.forEach(ch => {
+      if(!buckets.has(ch.category)) buckets.set(ch.category, { title: ch.category, items: [] });
+      buckets.get(ch.category).items.push(ch);
+    });
+  } else {
+    filtered.forEach(ch => {
+      const gKey = ch.subGroup || ch.category;
+      if(!buckets.has(gKey)) buckets.set(gKey, { title: gKey, items: [] });
+      buckets.get(gKey).items.push(ch);
+    });
+  }
+
+  for(const bucket of buckets.values()){
+    if(!bucket.items.length) continue;
+    const block = document.createElement('div');
+    block.className = 'group-block';
+    block.innerHTML = `
+      <div class="group-hdr">
+        <span class="group-title">${esc(bucket.title)}</span>
+        <span class="group-badge">${bucket.items.length}</span>
+      </div>
+      <div class="ch-grid"></div>`;
+    const grid = block.querySelector('.ch-grid');
+
+    bucket.items.forEach(ch => {
+      const card = document.createElement('div');
+      card.className = 'ch-card' + (currentChannel?.id === ch.id ? ' active' : '');
+      const fb = avatar(ch.name, '1e293b', 60);
+      card.innerHTML = `
+        ${ch.urls.length > 1 ? `<span class="srv-pill">${ch.urls.length} SRV</span>` : ''}
+        <div class="live-pip"></div>
+        <div class="ch-logo-wrap"><img class="ch-logo" src="${esc(ch.logo)}" alt="${esc(ch.name)}" loading="lazy"></div>
+        <div class="ch-name">${esc(ch.name)}</div>`;
+      const img = card.querySelector('img');
+      img.addEventListener('error', ()=>{ if(img.src !== fb) img.src = fb; }, { once: true });
+      card.onclick = ()=>{
+        playChannelServer(ch, 0);
+        renderGroupedList();
+        if(window.innerWidth < 920) document.querySelector('.player-section')?.scrollIntoView({ behavior: 'smooth' });
+      };
+      grid.appendChild(card);
+    });
+    chListWrap.appendChild(block);
+  }
+}
+
+chSearch.addEventListener('input', e => { searchQuery = e.target.value; renderGroupedList(); });
+document.addEventListener('visibilitychange', ()=>{
+  if(!hls) return;
+  if(document.hidden){ hls.stopLoad(); vp.pause(); }
+  else{ hls.startLoad(); if(currentChannel && vp.paused) vp.play().catch(()=>{}); }
+});
+window.addEventListener('beforeunload', destroyHls);
+
+async function init(){
+  initPalette(); initTheme();
+  infoLabel.textContent = 'চ্যানেল ও গ্রুপ সাজানো হচ্ছে...';
+  groupedChannels = await loadAllSources();
+  buildTabs();
+  renderGroupedList();
+  infoLabel.textContent = 'PritomX Global TV HuB';
+
+  const preferred = groupedChannels.find(c => c.category === 'Live Events')
+    || groupedChannels.find(c => c.category === 'Sports')
+    || groupedChannels[0];
+  if(preferred){
+    playChannelServer(preferred, 0);
+    renderGroupedList();
+  }
+
+  globalLoader.style.opacity = '0';
+  setTimeout(()=>{ globalLoader.style.display = 'none'; }, 350);
+}
+init();
+</script>
+</body>
+</html>

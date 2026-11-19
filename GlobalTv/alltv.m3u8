@@ -1,0 +1,7 @@
+#EXTM3U
+# PritomX Global TV HuB — NIS Free Playlist
+#EXTINF:-1 tvg-logo="https://ui-avatars.com/api/?name=LM&background=e50914&color=fff&size=128" group-title="Live Events",Live Match 01 (Demo HD)
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+
+#EXTINF:-1 tvg-logo="https://ui-avatars.com/api/?name=SP&background=1a73e8&color=fff&size=128" group-title="Sports",Sports Arena HD (Demo)
+https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8
