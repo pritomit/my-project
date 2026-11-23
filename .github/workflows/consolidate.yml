@@ -1,0 +1,57 @@
+name: Consolidate Repositories into Folders
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout my-project
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config user.name "pritomit"
+          git config user.email "pritomit@users.noreply.github.com"
+
+      - name: Pull and organise repositories into folders
+        run: |
+          repos=(
+            "Artificial-Intelligence-"
+            "Chat"
+            "Free-Chat"
+            "portfolio-website"
+            "pritomx-lab"
+            "pritomxtube"
+            "Projact"
+            "Prompt-hub"
+            "Readme2.md"
+            "termux-tools"
+            "chat-app"
+            "codex-termux-pocket"
+            "copilot-cli-for-beginners"
+            "Cybersecurity-pdf"
+            "no-cost-ai"
+            "quickstart-calls-directcall-android"
+            "RDPWindows"
+            "sendbird-uikit-android"
+            "space-portfolio"
+            "wormxgpt"
+          )
+
+          for repo in "${repos[@]}"; do
+            echo "Moving $repo into folder..."
+            rm -rf "$repo"
+            git clone --depth=1 "https://github.com/pritomit/$repo.git" "$repo" || true
+            rm -rf "$repo/.git"
+          done
+
+      - name: Commit and Push to my-project
+        run: |
+          git add .
+          git commit -m "feat: move all repositories into my-project as folders" || echo "No changes"
+          git push origin main
