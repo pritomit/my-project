@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cPanel Static FTP File Manager</title>
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#475569',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .file-row:hover { background-color: #f8fafc; cursor: pointer; }
+        .file-row.selected { background-color: #e0f2fe !important; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Simple fade animation */
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.2s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex flex-col overflow-hidden text-slate-800">
+
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-blue-500 text-white rounded-lg flex items-center justify-center text-xl shadow-sm">
+                <i class="fa-solid fa-server"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-slate-900">FTP File Manager</h1>
+                <p class="text-[11px] text-slate-500 font-medium uppercase tracking-wider">cPanel Static Interface</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="relative hidden md:block">
+                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" placeholder="Search files..." class="pl-9 pr-4 py-2 bg-slate-100 border border-transparent rounded-lg text-sm focus:bg-white focus:border-primary/30 focus:ring-2 focus:ring-primary/20 outline-none w-64 transition-all">
+            </div>
+            <div class="flex items-center gap-3 border-l border-slate-200 pl-4">
+                <button class="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
+                    <i class="fa-solid fa-cog"></i>
+                </button>
+                <div class="flex items-center gap-2 cursor-pointer p-1 pr-3 rounded-full hover:bg-slate-100 transition-colors">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 overflow-hidden shadow-sm">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" class="w-full h-full object-cover">
+                    </div>
+                    <span class="text-sm font-semibold hidden sm:block">Admin</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0 z-0">
+            <div class="p-4 border-b border-slate-100">
+                <button onclick="document.getElementById('upload-modal').classList.remove('hidden')" class="w-full bg-primary hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-500/20 active:scale-95">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Files
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-3 space-y-1 text-sm font-medium">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2 px-3">Quick Access</div>
+                <a href="#" class="flex items-center justify-between px-3 py-2 bg-blue-50 text-primary rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-home w-5 text-center"></i> public_html
+                    </div>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-globe w-5 text-center text-slate-400"></i> www
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-image w-5 text-center text-slate-400"></i> images
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-code w-5 text-center text-slate-400"></i> css
+                </a>
+                
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-6 px-3">System Folders</div>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-folder-gear w-5 text-center text-slate-400"></i> etc
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-envelope w-5 text-center text-slate-400"></i> mail
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i class="fa-solid fa-trash-can w-5 text-center text-slate-400"></i> .trash
+                </a>
+            </div>
+            
+            <div class="p-5 border-t border-slate-200 bg-slate-50/50">
+                <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+                    <span class="font-medium">Storage Usage</span>
+                    <span class="font-bold text-slate-700">8.5 / 10 GB</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-1.5 mb-1 shadow-inner">
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full h-1.5 shadow-sm" style="width: 85%"></div>
+                </div>
+                <p class="text-[10px] text-slate-400 text-right">85% used</p>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="flex-1 flex flex-col min-w-0 bg-white">
+            <!-- Toolbar & Breadcrumbs -->
+            <div class="h-14 border-b border-slate-200 flex items-center justify-between px-6 bg-white shrink-0 shadow-sm z-10">
+                <div class="flex items-center gap-2 text-sm">
+                    <button class="text-slate-400 hover:text-primary transition-colors"><i class="fa-solid fa-house"></i></button>
+                    <span class="text-slate-300">/</span>
+                    <button class="text-slate-600 hover:text-primary transition-colors">home</button>
+                    <span class="text-slate-300">/</span>
+                    <button class="text-slate-800 font-bold hover:text-primary transition-colors">public_html</button>
+                </div>
+                
+                <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                    <button class="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-sm rounded-md transition-all" title="New Folder">
+                        <i class="fa-solid fa-folder-plus text-sm"></i>
+                    </button>
+                    <button class="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-sm rounded-md transition-all" title="New File">
+                        <i class="fa-solid fa-file-circle-plus text-sm"></i>
+                    </button>
+                    <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                    <button class="p-1.5 text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-sm rounded-md transition-all" title="Refresh">
+                        <i class="fa-solid fa-rotate-right text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- File List Header -->
+            <div class="grid grid-cols-12 gap-4 px-6 py-2 border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-widest shrink-0">
+                <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                    <input type="checkbox" id="selectAll" class="rounded border-slate-300 text-primary focus:ring-primary w-3.5 h-3.5" onclick="toggleAll(this)">
+                    <span>Name</span>
+                </div>
+                <div class="col-span-3 hidden md:block text-right">Size</div>
+                <div class="col-span-4 md:col-span-3 text-right">Last Modified</div>
+                <div class="col-span-2 md:col-span-1 text-center">Perms</div>
+            </div>
+
+            <!-- File List -->
+            <div class="flex-1 overflow-y-auto" id="file-list">
+                <!-- Folder Item -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-solid fa-folder text-yellow-400 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="font-semibold text-slate-700 select-none">assets</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-400 text-xs font-medium">--</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Oct 24, 2023 14:30</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0755</div>
+                </div>
+
+                <!-- Folder Item -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-solid fa-folder text-yellow-400 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="font-semibold text-slate-700 select-none">images</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-400 text-xs font-medium">--</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Oct 20, 2023 09:15</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0755</div>
+                </div>
+
+                <!-- File Item HTML -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-brands fa-html5 text-orange-500 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="text-slate-700 font-medium select-none">index.html</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-500 text-xs font-medium">12.4 KB</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Nov 02, 2023 16:45</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0644</div>
+                </div>
+
+                <!-- File Item CSS -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-brands fa-css3-alt text-blue-500 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="text-slate-700 font-medium select-none">style.css</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-500 text-xs font-medium">45.1 KB</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Nov 01, 2023 11:20</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0644</div>
+                </div>
+
+                <!-- File Item JS -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-brands fa-js text-yellow-500 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="text-slate-700 font-medium select-none">script.js</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-500 text-xs font-medium">8.2 KB</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Oct 28, 2023 08:30</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0644</div>
+                </div>
+                
+                <!-- File Item PHP -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-brands fa-php text-indigo-500 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="text-slate-700 font-medium select-none">config.php</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-500 text-xs font-medium">2.1 KB</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Oct 15, 2023 18:05</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0640</div>
+                </div>
+                
+                <!-- File Item Archive -->
+                <div class="file-row grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-100 items-center text-sm transition-colors" onclick="toggleSelect(this)">
+                    <div class="col-span-6 md:col-span-5 flex items-center gap-3">
+                        <input type="checkbox" class="file-cb rounded border-slate-300 text-primary focus:ring-primary w-4 h-4" onclick="event.stopPropagation(); updateRowStyle(this)">
+                        <i class="fa-solid fa-file-zipper text-red-500 text-xl w-6 text-center drop-shadow-sm"></i>
+                        <span class="text-slate-700 font-medium select-none">backup_2023.zip</span>
+                    </div>
+                    <div class="col-span-3 hidden md:block text-right text-slate-500 text-xs font-medium">145.8 MB</div>
+                    <div class="col-span-4 md:col-span-3 text-right text-slate-500 text-xs">Sep 30, 2023 23:59</div>
+                    <div class="col-span-2 md:col-span-1 text-center text-slate-400 font-mono text-[11px] bg-slate-100 rounded px-1">0644</div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="bg-white border-t border-slate-200 p-4 flex items-center justify-between shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+                <div class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200" id="selection-status">
+                    0 items selected
+                </div>
+                <div class="flex gap-2">
+                    <button class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50" id="btn-edit" disabled>
+                        <i class="fa-solid fa-pen-to-square text-slate-400"></i> Edit
+                    </button>
+                    <button class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50" id="btn-copy" disabled>
+                        <i class="fa-solid fa-copy text-slate-400"></i> Copy
+                    </button>
+                    <button class="px-4 py-2 text-sm font-semibold text-white bg-red-600 border border-red-600 rounded-lg hover:bg-red-700 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:bg-red-400 disabled:border-red-400" id="btn-delete" disabled>
+                        <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in-up">
+            <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Upload Files
+                </h3>
+                <button onclick="document.getElementById('upload-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="border-2 border-dashed border-blue-300 rounded-xl p-10 flex flex-col items-center justify-center text-center bg-blue-50/50 hover:bg-blue-50 transition-colors cursor-pointer group">
+                    <div class="w-16 h-16 bg-white shadow-sm border border-blue-100 text-primary rounded-full flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                    </div>
+                    <p class="font-bold text-slate-700 mb-1 text-lg">Select files to upload</p>
+                    <p class="text-sm text-slate-500 mb-5">or drag and drop them here into <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-600">/public_html</code></p>
+                    <button class="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md transition-all active:scale-95">Browse Files</button>
+                </div>
+                
+                <!-- Mock Progress -->
+                <div class="mt-6 space-y-3 hidden" id="upload-progress">
+                    <div class="flex items-center justify-between text-sm">
+                        <div class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i class="fa-regular fa-image text-blue-500"></i> banner.png
+                        </div>
+                        <span class="text-slate-500 font-mono text-xs">45%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 shadow-inner">
+                        <div class="bg-primary rounded-full h-2 shadow-sm" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button onclick="document.getElementById('upload-modal').classList.add('hidden')" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script for UI interactions -->
+    <script>
+        function toggleSelect(row) {
+            row.classList.toggle('selected');
+            const checkbox = row.querySelector('.file-cb');
+            checkbox.checked = row.classList.contains('selected');
+            updateSelectionStatus();
+            updateSelectAllCheckbox();
+        }
+
+        function updateRowStyle(checkbox) {
+            const row = checkbox.closest('.file-row');
+            if(checkbox.checked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+            updateSelectionStatus();
+            updateSelectAllCheckbox();
+        }
+
+        function toggleAll(selectAllCb) {
+            const isChecked = selectAllCb.checked;
+            const rows = document.querySelectorAll('.file-row');
+            const checkboxes = document.querySelectorAll('.file-cb');
+            
+            rows.forEach(row => {
+                if (isChecked) {
+                    row.classList.add('selected');
+                } else {
+                    row.classList.remove('selected');
+                }
+            });
+            
+            checkboxes.forEach(cb => cb.checked = isChecked);
+            updateSelectionStatus();
+        }
+
+        function updateSelectAllCheckbox() {
+            const allCheckboxes = document.querySelectorAll('.file-cb');
+            const checkedCheckboxes = document.querySelectorAll('.file-cb:checked');
+            const selectAllCb = document.getElementById('selectAll');
+            
+            if (checkedCheckboxes.length === 0) {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = false;
+            } else if (checkedCheckboxes.length === allCheckboxes.length) {
+                selectAllCb.checked = true;
+                selectAllCb.indeterminate = false;
+            } else {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = true;
+            }
+        }
+
+        function updateSelectionStatus() {
+            const selectedCount = document.querySelectorAll('.file-row.selected').length;
+            const statusEl = document.getElementById('selection-status');
+            
+            const btnEdit = document.getElementById('btn-edit');
+            const btnCopy = document.getElementById('btn-copy');
+            const btnDelete = document.getElementById('btn-delete');
+
+            if (selectedCount === 0) {
+                statusEl.textContent = '0 items selected';
+                statusEl.className = 'text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors';
+                btnEdit.disabled = true;
+                btnCopy.disabled = true;
+                btnDelete.disabled = true;
+            } else {
+                statusEl.textContent = selectedCount === 1 ? '1 item selected' : `${selectedCount} items selected`;
+                statusEl.className = 'text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors';
+                
+                // Only allow edit if exactly 1 item is selected
+                btnEdit.disabled = selectedCount !== 1;
+                btnCopy.disabled = false;
+                btnDelete.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

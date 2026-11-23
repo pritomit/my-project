@@ -1,0 +1,6 @@
+{
+  "name": "InstaDM - Real-time Private Chat",
+  "description": "Real-time private 1-to-1 messaging application between users and admin, featuring Instagram Direct Message UI, online status, typing indicators, and admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,23 @@
+# Logs
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# PHP Files
+*.php~
+*.phtml~
+
+# Composer
+/vendor/
+composer.lock
+
+# IDE Files
+.idea/
+.vscode/
+
+# Misc
+*.zip
+*.tar.gz
+*.tar.bz2

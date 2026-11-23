@@ -1,0 +1,592 @@
+import { AppSettings, Message, ToolInvocation } from '../types';
+import { getEffectiveSystemInstruction, truncateSystemInstruction } from '../utils/promptUtils';
+import { parseToolCallsFromText } from '../utils/toolAwareness';
+
+// Simple token estimation (roughly 1 token per 4 characters)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/** Best-effort parse of a tool argument payload for display purposes. */
+function safeJsonArgs(raw: string): any {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { raw };
+  }
+}
+
+export interface StreamYield {
+  text: string;
+  images: string[];
+  video?: string;
+  audio?: string;
+  sources?: { title: string; url: string }[];
+  toolInvocations?: ToolInvocation[];
+}
+
+export class PollinationsService {
+  private apiKey: string = '';
+  private baseUrl = 'https://gen.pollinations.ai';
+  private fallbackTextUrl = 'https://text.pollinations.ai';
+
+  private readonly TOKEN_LIMIT = 8000;
+  private readonly RESPONSE_BUDGET = 2000;
+
+  setApiKey(key: string) {
+    this.apiKey = key;
+  }
+
+  private normalizeBearerToken(token?: string | null): string {
+    if (!token) return '';
+    const normalized = token.trim();
+    return normalized && normalized.toLowerCase() !== 'free' ? normalized : '';
+  }
+
+  async verifyApiKey(key: string): Promise<boolean> {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const normalizedKey = this.normalizeBearerToken(key);
+      if (normalizedKey) {
+        headers['Authorization'] = `Bearer ${normalizedKey}`;
+      }
+      const response = await fetch(this.baseUrl + '/v1/chat/completions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: 'openai',
+          messages: [{ role: 'user', content: 'ping' }],
+          max_tokens: 1,
+          stream: false
+        })
+      });
+      return response.ok || response.status === 200 || response.status === 400 || response.status === 401;
+    } catch {
+      return true; // Pollinations is public free tier fallback
+    }
+  }
+
+  /**
+   * Synchronous standard request-response chat generation
+   */
+  async generateChat(
+    settings: AppSettings,
+    messages: Message[],
+    signal?: AbortSignal
+  ): Promise<StreamYield> {
+    const bearerToken = this.normalizeBearerToken(
+      settings.pollinationsApiKey || this.apiKey || (typeof window !== 'undefined' ? localStorage.getItem('pollinationsApiKey') : '') || ''
+    );
+    if (bearerToken) this.apiKey = bearerToken;
+
+    const lastMessage = messages[messages.length - 1];
+    const prompt = lastMessage?.content || '';
+
+    // Check media commands
+    if (prompt.toLowerCase().startsWith('/image ')) {
+      const imagePrompt = prompt.substring(7).trim();
+      return this.generateImage(imagePrompt, settings, signal);
+    }
+
+    if (prompt.toLowerCase().startsWith('/video ')) {
+      const videoPrompt = prompt.substring(7).trim();
+      return this.generateVideo(videoPrompt, settings, signal);
+    }
+
+    if (prompt.toLowerCase().startsWith('/audio ')) {
+      const audioPrompt = prompt.substring(7).trim();
+      return this.generateAudio(audioPrompt, settings, signal);
+    }
+
+    // Direct synchronous text generation
+    return this.generateText(settings, messages, undefined, signal);
+  }
+
+  /**
+   * Backward-compatible generator wrapper
+   */
+  async *streamChat(
+    settings: AppSettings, 
+    messages: Message[], 
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamYield> {
+    // Real token streaming over SSE for plain text requests (no tool turns).
+    // Tool-call flows and media commands still use the blocking path.
+    const lastMsg = messages[messages.length - 1];
+    const prompt = (lastMsg?.content || '').trim().toLowerCase();
+    const isMediaCommand = prompt.startsWith('/image ') || prompt.startsWith('/video ') || prompt.startsWith('/audio ');
+    if (!isMediaCommand) {
+      const streamed = yield* this.streamTextSSE(settings, messages, signal);
+      if (streamed) return;
+    }
+    const result = await this.generateChat(settings, messages, signal);
+    yield result;
+  }
+
+  /**
+   * True token streaming over SSE from text.pollinations.ai.
+   * Yields cumulative text; returns true if the stream produced content,
+   * false if the endpoint failed (caller falls back to blocking path).
+   */
+  private async *streamTextSSE(
+    settings: AppSettings,
+    messages: Message[],
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamYield, boolean, void> {
+    // Skip SSE for vision inputs (they ride the main request pipeline)
+    const hasImages = messages.some(m => m.images && m.images.length > 0);
+    if (hasImages) return false;
+
+    let systemInstruction = getEffectiveSystemInstruction(settings, messages);
+    if (systemInstruction && estimateTokens(systemInstruction) > 1500) {
+      systemInstruction = truncateSystemInstruction(systemInstruction, 4000);
+    }
+
+    const openAIMessages: Array<any> = [];
+    if (systemInstruction && systemInstruction.trim()) {
+      openAIMessages.push({ role: 'system', content: systemInstruction });
+    }
+    for (const msg of messages) {
+      openAIMessages.push({
+        role: msg.role === 'model' ? 'assistant' : msg.role,
+        content: msg.content
+      });
+    }
+
+    // Model name mapping (mirrors generateText)
+    let model = (settings.model || 'openai').toLowerCase();
+    if (model.includes('deepseek-r1') || model === 'deepseek-reasoner') model = 'deepseek-reasoner';
+    else if (model.includes('deepseek')) model = 'deepseek';
+    else if (model.includes('claude-3-7') || model.includes('claude-3-5') || model.includes('claude')) model = 'claude';
+    else if (model.includes('mistral')) model = 'mistral';
+    else if (model.includes('qwen')) model = 'qwen-coder';
+    else if (model.includes('llama')) model = 'llama';
+    else if (model.includes('gemini')) model = 'gemini';
+    else if (model.includes('search')) model = 'searchgpt';
+    else if (model === 'openai-large' || model === 'openai-fast') { /* keep as-is */ }
+
+    const bearerToken = this.normalizeBearerToken(
+      settings.pollinationsApiKey || this.apiKey || (typeof window !== 'undefined' ? localStorage.getItem('pollinationsApiKey') : '') || ''
+    );
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream'
+    };
+    if (bearerToken) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+    }
+
+    let resp: Response;
+    try {
+      resp = await fetch(this.fallbackTextUrl, {
+        signal,
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          messages: openAIMessages,
+          model,
+          seed: Math.floor(Math.random() * 1000000),
+          stream: true,
+          json: false
+        })
+      });
+    } catch {
+      return false;
+    }
+
+    if (!resp.ok || !resp.body) return false;
+
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('event-stream')) {
+      // Endpoint ignored stream:true and returned a single JSON/text body —
+      // treat it as a successful blocking response instead of failing.
+      const textResult = await resp.text();
+      if (textResult && textResult.trim()) {
+        yield { text: textResult, images: [], sources: [] };
+        return true;
+      }
+      return false;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let cumulative = '';
+
+    try {
+      while (true) {
+        if (signal?.aborted) {
+          try { await reader.cancel(); } catch {}
+          throw new DOMException('Generation cancelled by user.', 'AbortError');
+        }
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+
+        for (const part of parts) {
+          for (const line of part.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const payload = trimmed.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+            try {
+              const json = JSON.parse(payload);
+              const delta = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.text ?? '';
+              if (delta) {
+                cumulative += delta;
+                yield { text: cumulative, images: [], sources: [] };
+              }
+            } catch {
+              // Malformed JSON chunk — skip
+            }
+          }
+        }
+      }
+    } finally {
+      try { reader.releaseLock(); } catch {}
+    }
+
+    // This plain-text endpoint cannot return a structured function call, so if
+    // the model asked for a tool we must hand the turn to the tool-aware
+    // blocking path instead of surfacing a request that will never execute.
+    if (cumulative && parseToolCallsFromText(cumulative).length > 0) {
+      return false;
+    }
+
+    return cumulative.length > 0;
+  }
+
+  private async generateText(
+    settings: AppSettings, 
+    messages: Message[], 
+    forceTools?: any[], 
+    signal?: AbortSignal
+  ): Promise<StreamYield> {
+    const maxTokens = this.TOKEN_LIMIT;
+    const tokenBudget = maxTokens - this.RESPONSE_BUDGET;
+    let usedTokens = 0;
+
+    let systemInstruction = getEffectiveSystemInstruction(settings, messages);
+    if (systemInstruction && estimateTokens(systemInstruction) > 1500) {
+      systemInstruction = truncateSystemInstruction(systemInstruction, 4000);
+    }
+    usedTokens += estimateTokens(systemInstruction);
+
+    const openAIMessages: Array<any> = [];
+    if (systemInstruction.trim()) {
+      openAIMessages.push({
+        role: 'system',
+        content: systemInstruction
+      });
+    }
+
+    const lastMsg = messages[messages.length - 1];
+    const lastMsgFormatted = {
+      role: lastMsg.role === 'model' ? 'assistant' : lastMsg.role,
+      content: lastMsg.content
+    };
+    usedTokens += estimateTokens(lastMsg.content);
+
+    const historyMessages: Array<any> = [];
+    for (let i = messages.length - 2; i >= 0; i--) {
+      const msg = messages[i];
+      const msgTokens = estimateTokens(msg.content);
+      if (usedTokens + msgTokens > tokenBudget) break;
+      historyMessages.unshift({
+        role: msg.role === 'model' ? 'assistant' : msg.role,
+        content: msg.content
+      });
+      usedTokens += msgTokens;
+    }
+
+    openAIMessages.push(...historyMessages, lastMsgFormatted);
+
+    // Map model cleanly to a Pollinations compatible model name
+    let model = (settings.model || 'openai').toLowerCase();
+    if (model.includes('deepseek-r1') || model === 'deepseek-reasoner') model = 'deepseek-reasoner';
+    else if (model.includes('deepseek')) model = 'deepseek';
+    else if (model.includes('claude-3-7') || model.includes('claude-3-5') || model.includes('claude')) model = 'claude';
+    else if (model.includes('mistral')) model = 'mistral';
+    else if (model.includes('qwen')) model = 'qwen-coder';
+    else if (model.includes('llama')) model = 'llama';
+    else if (model.includes('gemini')) model = 'gemini';
+    else if (model.includes('search')) model = 'searchgpt';
+    else if (model === 'openai-large') model = 'openai-large';
+    else if (model === 'openai-fast') model = 'openai-fast';
+    else if (model.includes('flux')) model = 'flux';
+    else model = settings.model || 'openai';
+
+    const bearerToken = this.normalizeBearerToken(
+      settings.pollinationsApiKey || this.apiKey || (typeof window !== 'undefined' ? localStorage.getItem('pollinationsApiKey') : '') || ''
+    );
+
+    const { getDynamicTools } = await import('./tools');
+    const dynamicTools = forceTools || (await getDynamicTools(settings));
+
+    let toolSources: { title: string; url: string }[] = [];
+    let accumulatedText = '';
+    const toolInvocations: ToolInvocation[] = [];
+    const MAX_TURNS = 4;
+
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      if (signal?.aborted) {
+        throw new Error('Generation cancelled by user.');
+      }
+
+      // 1. Try public text endpoint first via POST JSON (most stable and fast)
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (bearerToken) {
+          headers['Authorization'] = `Bearer ${bearerToken}`;
+        }
+
+        const postResp = await fetch(this.fallbackTextUrl, {
+          signal,
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            messages: openAIMessages,
+            model,
+            seed: Math.floor(Math.random() * 1000000),
+            json: false
+          })
+        });
+
+        if (postResp.ok) {
+          const textResult = await postResp.text();
+          if (textResult && textResult.trim()) {
+            // This route carries no tool schemas and cannot execute a function
+            // call. When the model asks for a tool, fall through to the
+            // tool-capable completions route below rather than returning text
+            // that describes a call nobody performs.
+            const requestedTool = dynamicTools.length > 0
+              && parseToolCallsFromText(textResult).length > 0;
+            if (!requestedTool) {
+              return {
+                text: accumulatedText ? `${accumulatedText}\n${textResult}` : textResult,
+                images: [],
+                sources: toolSources
+              };
+            }
+          }
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') throw err;
+        console.warn('Pollinations JSON POST failed, attempting alternate route...', err);
+      }
+
+      // 2. Try gen.pollinations.ai /v1/chat/completions if API key or standard endpoint
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (bearerToken) {
+          headers['Authorization'] = `Bearer ${bearerToken}`;
+        }
+
+        const compResp = await fetch(this.baseUrl + '/v1/chat/completions', {
+          signal,
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model,
+            messages: openAIMessages,
+            temperature: settings.temperature ?? 0.7,
+            stream: false,
+            ...(dynamicTools.length > 0 ? { tools: dynamicTools, tool_choice: 'auto' } : {})
+          })
+        });
+
+        if (compResp.ok) {
+          const data = await compResp.json();
+          const assistantMsg = data.choices?.[0]?.message;
+          if (assistantMsg) {
+            // Handle tool calls if any
+            if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+              const { executeToolCall } = await import('./tools');
+              const { getToolExecutingString, getToolResultString, validateAndFixToolArgs } = await import('../utils/toolHelpers');
+
+              openAIMessages.push(assistantMsg);
+
+              for (const tc of assistantMsg.tool_calls) {
+                const toolName = tc.function?.name || '';
+                const toolArgsStr = tc.function?.arguments || '{}';
+                const execStr = getToolExecutingString(toolName);
+                const toolCallId = tc.id || 'call_' + Math.random().toString(36).substring(7);
+                const fixedArgs = validateAndFixToolArgs(toolArgsStr, toolName);
+                const startedAt = Date.now();
+
+                accumulatedText += (assistantMsg.content ? assistantMsg.content + '\n' : '') + `${execStr}\n`;
+
+                const toolResultData = await executeToolCall({
+                  id: toolCallId,
+                  type: 'function',
+                  function: { name: toolName, arguments: fixedArgs }
+                });
+
+                let parsedResult: any;
+                let isError = false;
+                try {
+                  parsedResult = JSON.parse(toolResultData);
+                  if (Array.isArray(parsedResult)) parsedResult = { results: parsedResult };
+                  if (parsedResult.sources) toolSources = [...toolSources, ...parsedResult.sources];
+                  if (parsedResult.error !== undefined || parsedResult.success === false) isError = true;
+                } catch {
+                  parsedResult = { content: toolResultData };
+                }
+
+                accumulatedText = accumulatedText.replace(execStr, getToolResultString(toolName, isError));
+
+                toolInvocations.push({
+                  state: 'result',
+                  toolCallId,
+                  toolName,
+                  args: safeJsonArgs(fixedArgs),
+                  result: parsedResult,
+                  startedAt,
+                  completedAt: Date.now(),
+                  latencyMs: Date.now() - startedAt
+                });
+
+                openAIMessages.push({
+                  role: 'tool',
+                  tool_call_id: tc.id,
+                  name: toolName,
+                  content: typeof parsedResult === 'string' ? parsedResult : JSON.stringify(parsedResult)
+                });
+              }
+              continue;
+            }
+
+            const finalContent = assistantMsg.content || '';
+            return {
+              text: accumulatedText ? `${accumulatedText}\n${finalContent}` : finalContent,
+              images: [],
+              sources: toolSources,
+              toolInvocations
+            };
+          }
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') throw err;
+        console.warn('Pollinations completions API failed, trying direct text GET...', err);
+      }
+
+      // 3. Last fallback: Direct GET query
+      try {
+        const lastUserContent = lastMsg.content || 'hi';
+        const getUrl = `${this.fallbackTextUrl}/${encodeURIComponent(lastUserContent)}?model=${encodeURIComponent(model)}`;
+        const getResp = await fetch(getUrl, { signal });
+        if (getResp.ok) {
+          const textResult = await getResp.text();
+          if (textResult) {
+            return {
+              text: accumulatedText ? `${accumulatedText}\n${textResult}` : textResult,
+              images: [],
+              sources: toolSources
+            };
+          }
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') throw err;
+      }
+
+      // If all attempts failed on this turn
+      throw new Error('Pollinations service temporarily unavailable.');
+    }
+
+    return {
+      text: accumulatedText || 'No response generated.',
+      images: [],
+      sources: toolSources,
+      toolInvocations
+    };
+  }
+
+  private async generateImage(prompt: string, settings: AppSettings, signal?: AbortSignal): Promise<StreamYield> {
+    if (signal?.aborted) throw new Error('Generation cancelled');
+    const model = settings.model || 'flux';
+    const seed = Math.floor(Math.random() * 1000000);
+    const params = new URLSearchParams({
+      model,
+      width: '1024',
+      height: '1024',
+      nologo: 'true',
+      seed: seed.toString()
+    });
+
+    const bearerToken = this.normalizeBearerToken(
+      settings.pollinationsApiKey || this.apiKey || (typeof window !== 'undefined' ? localStorage.getItem('pollinationsApiKey') : '') || ''
+    );
+    if (bearerToken) {
+      params.append('key', bearerToken);
+    }
+
+    const imageUrl = `${this.baseUrl}/prompt/${encodeURIComponent(prompt)}?${params.toString()}`;
+
+    return {
+      text: `Image generated successfully:\n\n**Prompt:** ${prompt}\n**Model:** ${model}\n**Seed:** ${seed}`,
+      images: [imageUrl]
+    };
+  }
+
+  private async generateVideo(prompt: string, settings: AppSettings, signal?: AbortSignal): Promise<StreamYield> {
+    if (signal?.aborted) throw new Error('Generation cancelled');
+
+    let model = settings.model || 'veo';
+    const validVideoModels = ['veo', 'seedance', 'seedance-pro', 'wan', 'grok-video', 'ltx-2', 'p-video'];
+    if (!validVideoModels.includes(model)) model = 'veo';
+
+    const seed = Math.floor(Math.random() * 1000000);
+    const params = new URLSearchParams({
+      model,
+      width: '1024',
+      height: '1024',
+      duration: '4',
+      nologo: 'true',
+      seed: seed.toString()
+    });
+
+    const bearerToken = this.normalizeBearerToken(
+      settings.pollinationsApiKey || this.apiKey || (typeof window !== 'undefined' ? localStorage.getItem('pollinationsApiKey') : '') || ''
+    );
+    if (bearerToken) {
+      params.append('key', bearerToken);
+    }
+
+    const videoUrl = `https://gen.pollinations.ai/video/${encodeURIComponent(prompt)}?${params.toString()}`;
+
+    return {
+      text: `Video generated successfully:\n\n**Prompt:** ${prompt}\n**Model:** ${model}\n**Duration:** 4s`,
+      images: [],
+      video: videoUrl
+    };
+  }
+
+  private async generateAudio(prompt: string, settings: AppSettings, signal?: AbortSignal): Promise<StreamYield> {
+    if (signal?.aborted) throw new Error('Generation cancelled');
+    const voice = 'nova';
+    const params = new URLSearchParams({ voice });
+
+    const bearerToken = this.normalizeBearerToken(
+      settings.pollinationsApiKey || this.apiKey || (typeof window !== 'undefined' ? localStorage.getItem('pollinationsApiKey') : '') || ''
+    );
+    if (bearerToken) {
+      params.append('key', bearerToken);
+    }
+
+    const audioUrl = `https://gen.pollinations.ai/audio/${encodeURIComponent(prompt)}?${params.toString()}`;
+
+    return {
+      text: `Audio generated successfully:\n\n**Prompt:** ${prompt}\n**Voice:** ${voice}`,
+      images: [],
+      audio: audioUrl
+    };
+  }
+}
+
+export const pollinationsService = new PollinationsService();
